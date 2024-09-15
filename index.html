@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversational Requirement Elicitation Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            display: flex;
+            background-color: #007bff;
+            padding: 10px;
+        }
+        .navbar button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+            transition: background-color 0.3s;
+        }
+        .navbar button:hover, .navbar button.active {
+            background-color: #0056b3;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        /* Meta-Model Upload Styles */
+        .upload-form label {
+            font-size: 18px;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .upload-form input[type="file"] {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .upload-form input[type="submit"] {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        .upload-form input[type="submit"]:hover {
+            background-color: #218838;
+        }
+        /* Chat Interface Styles */
+        .chat-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .input-box {
+            display: flex;
+        }
+        .input-box input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .input-box button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-size: 16px;
+        }
+        .input-box button:hover {
+            background-color: #0056b3;
+        }
+        /* Summary Review Styles */
+        .summary {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+        .summary button {
+            padding: 10px 20px;
+            background-color: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        .summary button:hover {
+            background-color: #138496;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <div class="navbar">
+        <button class="tab-link active" onclick="openTab(event, 'upload')">Meta-Model Upload</button>
+        <button class="tab-link" onclick="openTab(event, 'chat')">Chat Interface</button>
+        <button class="tab-link" onclick="openTab(event, 'summary')">Summary Review</button>
+    </div>
+
+    <!-- Container for Tab Contents -->
+    <div class="container">
+        <!-- Meta-Model Upload Tab -->
+        <div id="upload" class="tab-content active">
+            <h1>Upload Meta-Model</h1>
+            <form class="upload-form" action="#" method="post" enctype="multipart/form-data">
+                <label for="file">Choose a meta-model (JSON/XML):</label>
+                <input type="file" id="file" name="file" accept=".json, .xml" required>
+                <input type="submit" value="Upload">
+            </form>
+        </div>
+
+        <!-- Chat Interface Tab -->
+        <div id="chat" class="tab-content">
+            <h1>Report Requirements Chat</h1>
+            <div class="chat-box" id="chat-box">
+                <!-- Chat messages will appear here -->
+            </div>
+            <div class="input-box">
+                <input type="text" id="userInput" placeholder="Enter your message..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <!-- Summary Review Tab -->
+        <div id="summary" class="tab-content">
+            <h1>Review Report Requirements</h1>
+            <div class="summary" id="summary-content">
+                <!-- Summary content will appear here -->
+                <p>No summary available. Please complete the chat to generate a summary.</p>
+            </div>
+            <button onclick="approveSummary()">Approve & Send to Data Engineers</button>
+        </div>
+    </div>
+
+    <script>
+        // Function to handle tab switching
+        function openTab(evt, tabName) {
+            // Hide all tab contents
+            var tabContents = document.getElementsByClassName('tab-content');
+            for (var i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+
+            // Remove active class from all buttons
+            var tabLinks = document.getElementsByClassName('tab-link');
+            for (var i = 0; i < tabLinks.length; i++) {
+                tabLinks[i].classList.remove('active');
+            }
+
+            // Show the selected tab and add active class to the button
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        // Chat functionality
+        const chatBox = document.getElementById('chat-box');
+        const summaryContent = document.getElementById('summary-content');
+
+        // Sample questions based on meta-model
+        const questions = [
+            "What type of report do you need?",
+            "What visualization style do you prefer?",
+            "Are there any specific filters or data fields required?",
+            "Do you need any sub-reports?",
+            "What graph types would you like to include?"
+        ];
+        let currentQuestion = 0;
+        let requirements = {};
+
+        // Initialize chat with the first question
+        window.onload = function() {
+            addMessage("System: " + questions[currentQuestion]);
+        };
+
+        function sendMessage() {
+            const inputBox = document.getElementById('userInput');
+            const message = inputBox.value.trim();
+            if (message === "") return;
+
+            addMessage("Sushma: " + message);
+            inputBox.value = '';
+
+            // Capture responses based on current question
+            switch(currentQuestion) {
+                case 0:
+                    requirements['Report Type'] = message;
+                    break;
+                case 1:
+                    requirements['Visualization'] = message;
+                    break;
+                case 2:
+                    requirements['Filters'] = message;
+                    break;
+                case 3:
+                    requirements['Sub-Reports'] = message;
+                    break;
+                case 4:
+                    requirements['Graph Types'] = message;
+                    break;
+                default:
+                    break;
+            }
+
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                addMessage("System: " + questions[currentQuestion]);
+            } else {
+                addMessage("System: Thank you! Generating summary...");
+                generateSummary();
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function generateSummary() {
+            let summary = "";
+            for (const [key, value] of Object.entries(requirements)) {
+                summary += `${key}: ${value}\n`;
+            }
+            summaryContent.textContent = summary;
+        }
+
+        function approveSummary() {
+            if (Object.keys(requirements).length === 0) {
+                alert("No summary to approve. Please complete the chat first.");
+                return;
+            }
+            alert("Summary approved and sent to Data Engineers.");
+            // Here you can add functionality to send the summary to the backend or another system
+        }
+    </script>
+
+</body>
+</html>
